@@ -322,6 +322,11 @@ if uploaded_file is not None:
     
     if analyze_clicked:
         with st.spinner("Analyzing chart... This may take a moment."):
+            # Check for OpenAI API key and show a friendly message if not available
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                st.info("**Note:** OpenAI API key not found. Using rule-based analysis instead of AI-powered suggestions. For enhanced results, please provide an OpenAI API key.")
+            
             # Perform analysis
             try:
                 analysis_results = analyze_chart(np.array(image), timeframe)
@@ -497,13 +502,22 @@ if st.session_state.analysis_complete and st.session_state.analysis_results is n
             suggestion_color = "#8b9eff"  # Blue
             icon = "📊"
         
-        # Display suggestion with enhanced styling
+        # Get strength value if available, or default to 75
+        signal_strength = trading_suggestion.get('strength', 75)
+        
+        # Display suggestion with enhanced styling and strength meter
         st.markdown(f"""
-        <div style="background-color: {suggestion_color}; padding: 1.2rem; border-radius: 12px; margin-bottom: 1.5rem;">
-            <h4 style="color: white; margin: 0; display: flex; align-items: center;">
-                <span style="font-size: 1.5rem; margin-right: 0.8rem;">{icon}</span>
-                {trading_suggestion['action']}
-            </h4>
+        <div style="background-color: {suggestion_color}; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: white; margin: 0; display: flex; align-items: center;">
+                    <span style="font-size: 2rem; margin-right: 1rem;">{icon}</span>
+                    {trading_suggestion['action']}
+                </h3>
+                <div style="background-color: rgba(255,255,255,0.2); border-radius: 50px; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                    <div style="width: 10px; height: 10px; background-color: white; border-radius: 50%; margin-right: 8px;"></div>
+                    <span style="color: white; font-weight: bold;">{signal_strength}% Strength</span>
+                </div>
+            </div>
         </div>
         <div style="background-color: #1a2942; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 1.5rem; border: 1px solid #2d3747;">
             <p style="font-size: 1.1rem; line-height: 1.6; color: #ffffff;">{trading_suggestion['rationale']}</p>

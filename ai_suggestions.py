@@ -4,7 +4,15 @@ import json
 
 # Get API key from environment
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-openai = OpenAI(api_key=OPENAI_API_KEY)
+
+# Only initialize the OpenAI client if we have an API key
+openai = None
+if OPENAI_API_KEY:
+    try:
+        from openai import OpenAI
+        openai = OpenAI(api_key=OPENAI_API_KEY)
+    except Exception as e:
+        print(f"Error initializing OpenAI: {e}")
 
 def get_trading_suggestion(analysis_results, timeframe):
     """
@@ -39,6 +47,11 @@ def generate_ai_suggestion(analysis_results, timeframe):
     Returns:
         dict: A trading suggestion including action, rationale, and key levels
     """
+    # Check if OpenAI client is available
+    if not openai:
+        print("OpenAI client not available. Falling back to rule-based suggestion.")
+        return generate_rule_based_suggestion(analysis_results, timeframe)
+    
     # Format the analysis results for the prompt
     patterns_text = ""
     for pattern in analysis_results["patterns"]:
@@ -75,29 +88,30 @@ def generate_ai_suggestion(analysis_results, timeframe):
     {sr_text}
     
     Based on this analysis, provide a trading suggestion in JSON format with the following fields:
-    1. action: A clear buy/sell/hold recommendation (e.g., "Strong Buy", "Weak Sell", "Hold", etc.)
+    1. action: A clear directional recommendation using terms like "STRONG LONG", "LONG", "WEAK LONG", "NEUTRAL", "WEAK SHORT", "SHORT", or "STRONG SHORT"
     2. rationale: A brief explanation of the recommendation (2-3 sentences)
     3. entry_point: A suggested entry price
     4. stop_loss: A suggested stop loss price
     5. take_profit: A suggested take profit price
+    6. strength: A confidence percentage (0-100) indicating the strength of the signal
     
     Your suggestion should be fair, unbiased, and based solely on the technical analysis provided.
     """
     
-    # Call the OpenAI API
-    # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-    # do not change this unless explicitly requested by the user
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "You are an expert technical analyst who provides unbiased trading suggestions based on chart analysis."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_tokens=500
-    )
-    
     try:
+        # Call the OpenAI API
+        # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+        # do not change this unless explicitly requested by the user
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert technical analyst who provides unbiased trading suggestions based on chart analysis."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=500
+        )
+        
         suggestion = json.loads(response.choices[0].message.content)
         
         # Ensure all required fields are present
@@ -106,10 +120,14 @@ def generate_ai_suggestion(analysis_results, timeframe):
             if field not in suggestion:
                 raise ValueError(f"Missing required field: {field}")
         
+        # Add strength field if not present
+        if "strength" not in suggestion:
+            suggestion["strength"] = 75
+        
         return suggestion
     except Exception as e:
-        print(f"Error parsing OpenAI response: {e}")
-        # Fall back to rule-based suggestion if we can't parse the response
+        print(f"Error with OpenAI API: {e}")
+        # Fall back to rule-based suggestion if there's any error
         return generate_rule_based_suggestion(analysis_results, timeframe)
 
 def generate_rule_based_suggestion(analysis_results, timeframe):
@@ -178,27 +196,28 @@ def generate_rule_based_suggestion(analysis_results, timeframe):
     # Determine action based on signals
     signal_diff = bullish_signals - bearish_signals
     
+    # Use more direct LONG/SHORT terminology
     if signal_diff > 4:
-        action = "Strong Buy"
-        rationale = f"Multiple bullish indicators and patterns suggest upward momentum on the {timeframe} timeframe. Moving averages are aligned bullishly with positive oscillator readings."
+        action = "STRONG LONG"
+        rationale = f"Multiple bullish indicators and patterns suggest strong upward momentum on the {timeframe} timeframe. Moving averages are aligned bullishly with positive oscillator readings."
     elif signal_diff > 2:
-        action = "Buy"
+        action = "LONG"
         rationale = f"Bullish signals outweigh bearish ones on the {timeframe} timeframe. Technical indicators suggest potential upward movement with moderate strength."
     elif signal_diff > 0:
-        action = "Weak Buy"
+        action = "WEAK LONG"
         rationale = f"Slightly bullish signals on the {timeframe} timeframe, but caution is advised. Some indicators show positive momentum, but conviction is not strong."
     elif signal_diff == 0:
-        action = "Neutral / Hold"
+        action = "NEUTRAL"
         rationale = f"Mixed signals on the {timeframe} timeframe suggest a sideways market. Equal bullish and bearish pressure indicates no clear direction at this time."
     elif signal_diff > -2:
-        action = "Weak Sell"
+        action = "WEAK SHORT"
         rationale = f"Slightly bearish signals on the {timeframe} timeframe. Some indicators show negative momentum, but conviction is not strong."
     elif signal_diff > -4:
-        action = "Sell"
+        action = "SHORT"
         rationale = f"Bearish signals outweigh bullish ones on the {timeframe} timeframe. Technical indicators suggest potential downward movement with moderate strength."
     else:
-        action = "Strong Sell"
-        rationale = f"Multiple bearish indicators and patterns suggest downward momentum on the {timeframe} timeframe. Moving averages are aligned bearishly with negative oscillator readings."
+        action = "STRONG SHORT"
+        rationale = f"Multiple bearish indicators and patterns suggest strong downward momentum on the {timeframe} timeframe. Moving averages are aligned bearishly with negative oscillator readings."
     
     # Determine entry, stop loss, and take profit levels
     support_levels = indicators["support_resistance"]["support"]
@@ -208,15 +227,15 @@ def generate_rule_based_suggestion(analysis_results, timeframe):
     current_price = (support_levels[0] + resistance_levels[-1]) / 2
     
     # Set entry, stop loss, and take profit based on action
-    if "Buy" in action:
+    if "LONG" in action:
         entry_point = current_price
         stop_loss = support_levels[0] * 0.99  # Just below nearest support
         take_profit = resistance_levels[0] * 1.01  # Just above nearest resistance
-    elif "Sell" in action:
+    elif "SHORT" in action:
         entry_point = current_price
         stop_loss = resistance_levels[0] * 1.01  # Just above nearest resistance
         take_profit = support_levels[0] * 0.99  # Just below nearest support
-    else:  # Hold/Neutral
+    else:  # NEUTRAL
         entry_point = current_price
         stop_loss = support_levels[0] * 0.98  # Further below support for neutral stance
         take_profit = resistance_levels[0] * 1.02  # Further above resistance for neutral stance
@@ -226,10 +245,19 @@ def generate_rule_based_suggestion(analysis_results, timeframe):
     stop_loss = round(stop_loss, 2)
     take_profit = round(take_profit, 2)
     
+    # Add a strength percentage based on signal difference
+    if signal_diff > 0:
+        strength = min(100, int(signal_diff * 15))  # Cap at 100%
+    elif signal_diff < 0:
+        strength = min(100, int(abs(signal_diff) * 15))  # Cap at 100%
+    else:
+        strength = 0
+    
     return {
         "action": action,
         "rationale": rationale,
         "entry_point": entry_point,
         "stop_loss": stop_loss,
-        "take_profit": take_profit
+        "take_profit": take_profit,
+        "strength": strength  # New field for signal strength percentage
     }
