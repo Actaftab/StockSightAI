@@ -13,7 +13,15 @@ import utils
 if 'theme' not in st.session_state:
     st.session_state.theme = "light"
 
-# Define dark/light mode colors
+# Page configuration
+st.set_page_config(
+    page_title="Crypto Sant AI",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Define dark/light mode colors based on current theme
 if st.session_state.theme == "dark":
     bg_color = "#121212"
     text_color = "#E0E0E0"
@@ -30,14 +38,6 @@ else:  # light theme
     secondary_accent = "#03DAC6"
     header_color = "#6200EE"
     border_color = "#E0E0E0"
-
-# Page configuration
-st.set_page_config(
-    page_title="Crypto Sant AI",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Custom CSS with dynamic theme colors
 st.markdown(f"""
@@ -90,7 +90,7 @@ st.markdown(f"""
         border-radius: 12px;
         padding: 2rem;
         text-align: center;
-        margin: 1rem 0;
+        margin: 1rem 0 2rem 0;
         background-color: {card_bg};
     }}
     
@@ -205,6 +205,13 @@ st.markdown(f"""
         text-align: center;
     }}
     
+    /* Footer section */
+    .footer-section {{
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid {border_color};
+    }}
+    
     /* Fix Streamlit components */
     .css-1kyxreq {{
         justify-content: center !important;
@@ -218,16 +225,15 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Theme toggle button
-col_left, col_right = st.columns([6, 1])
-with col_right:
-    if st.button("🌓 " + ("Light Mode" if st.session_state.theme == "dark" else "Dark Mode")):
-        st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
-        st.rerun()
-
 # Sidebar 
 with st.sidebar:
     st.markdown(f"<h3 style='text-align: center; color: {header_color};'>Chart Settings</h3>", unsafe_allow_html=True)
+    
+    # Theme toggle button in sidebar
+    if st.button("🌓 " + ("Light Mode" if st.session_state.theme == "dark" else "Dark Mode")):
+        # Toggle theme
+        st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
+        st.rerun()
     
     # Timeframe selection with improved UI
     st.markdown("<p style='font-weight: 500;'>Select Timeframe</p>", unsafe_allow_html=True)
@@ -280,40 +286,7 @@ if 'analysis_complete' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
-# Introduction and How it Works in a clean table layout
-st.markdown(f"<div class='clean-card'>", unsafe_allow_html=True)
-st.markdown("<p class='info-text'>Welcome to Crypto Sant AI, your intelligent assistant for analyzing stock and crypto charts. Simply upload a chart image, and our AI will provide professional analysis and trading suggestions.</p>", unsafe_allow_html=True)
-
-# How it Works table
-st.markdown("<h4>How it Works</h4>", unsafe_allow_html=True)
-st.markdown("""
-<table class='how-it-works-table'>
-    <tr>
-        <td class='step-number'>1</td>
-        <td>Upload your chart image (from any trading platform)</td>
-    </tr>
-    <tr>
-        <td class='step-number'>2</td>
-        <td>Select the timeframe of your chart</td>
-    </tr>
-    <tr>
-        <td class='step-number'>3</td>
-        <td>Click "Analyze Chart" and wait a few seconds</td>
-    </tr>
-    <tr>
-        <td class='step-number'>4</td>
-        <td>Review detected patterns and technical indicators</td>
-    </tr>
-    <tr>
-        <td class='step-number'>5</td>
-        <td>Get AI-powered trading suggestions with entry/exit levels</td>
-    </tr>
-</table>
-""", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
-# Upload section with improved styling
-st.markdown("<div class='section-header'>Upload Chart</div>", unsafe_allow_html=True)
+# Upload section with improved styling - MOVED TO TOP
 st.markdown("<div class='upload-section'>", unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Upload Chart Image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
@@ -586,6 +559,45 @@ if st.session_state.analysis_complete and st.session_state.analysis_results is n
         """, unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True)
+
+# MOVED: "How it Works" section to the bottom in a footer style
+st.markdown("<div class='footer-section'>", unsafe_allow_html=True)
+
+# Introduction info moved to the bottom
+col1, col2 = st.columns([1, 1])
+with col1:
+    st.markdown("<h4>About Crypto Sant AI</h4>", unsafe_allow_html=True)
+    st.markdown("<p class='info-text'>Crypto Sant AI is your intelligent assistant for analyzing stock and crypto charts. Simply upload a chart image, and our AI will provide professional analysis and trading suggestions.</p>", unsafe_allow_html=True)
+
+# How it Works table in a smaller format at the bottom
+with col2:
+    st.markdown("<h4>How it Works</h4>", unsafe_allow_html=True)
+    st.markdown("""
+    <table class='how-it-works-table'>
+        <tr>
+            <td class='step-number'>1</td>
+            <td>Upload your chart image (from any trading platform)</td>
+        </tr>
+        <tr>
+            <td class='step-number'>2</td>
+            <td>Select the timeframe of your chart</td>
+        </tr>
+        <tr>
+            <td class='step-number'>3</td>
+            <td>Click "Analyze Chart" and wait a few seconds</td>
+        </tr>
+        <tr>
+            <td class='step-number'>4</td>
+            <td>Review detected patterns and technical indicators</td>
+        </tr>
+        <tr>
+            <td class='step-number'>5</td>
+            <td>Get AI-powered trading suggestions with entry/exit levels</td>
+        </tr>
+    </table>
+    """, unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Financial disclaimer with enhanced styling
 st.markdown("<div class='disclaimer'>", unsafe_allow_html=True)
