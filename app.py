@@ -241,6 +241,23 @@ st.markdown("""
 with st.sidebar:
     st.markdown("<h3 style='text-align: center; color: #8b9eff;'>Chart Settings</h3>", unsafe_allow_html=True)
     
+    # Check if OpenAI API key is already set
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        st.markdown("<p style='font-weight: 500; margin-top: 1rem;'>OpenAI API Key</p>", unsafe_allow_html=True)
+        api_key_input = st.text_input("OpenAI API Key", type="password", help="Enter your OpenAI API key for AI-powered suggestions", key="openai_api_key")
+        
+        if api_key_input:
+            os.environ["OPENAI_API_KEY"] = api_key_input
+            st.success("✅ API key set! AI-powered suggestions are now enabled.")
+    else:
+        st.markdown("<p style='color: #03DAC6; font-weight: 500; margin-top: 1rem;'>✅ OpenAI API key is set</p>", unsafe_allow_html=True)
+        if st.button("Clear API Key"):
+            os.environ["OPENAI_API_KEY"] = ""
+            st.rerun()
+    
+    st.markdown("<hr style='margin: 1.5rem 0; border-color: #2d3747;'>", unsafe_allow_html=True)
+    
     # Timeframe selection with improved UI
     st.markdown("<p style='font-weight: 500;'>Select Timeframe</p>", unsafe_allow_html=True)
     timeframe = st.selectbox(
