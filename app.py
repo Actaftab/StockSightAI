@@ -311,16 +311,17 @@ with st.container():
     st.markdown("<h1 class='main-header'>Crypto Sant AI</h1>", unsafe_allow_html=True)
     st.markdown("<p class='sub-header'>Stock Chart Analyzer</p>", unsafe_allow_html=True)
     
-    # Upload section with improved styling - at the top
-    st.markdown("<div class='upload-section'>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Upload Chart Image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-
+    # File uploader - simple version without the extra custom container
+    uploaded_file = st.file_uploader("Upload Chart Image", type=["jpg", "jpeg", "png"])
+    
+    # Add some better instructions if no file is uploaded
     if uploaded_file is None:
         st.markdown("""
-        <p style="color: #ffffff; opacity: 0.7;">Drag and drop your chart image here, or click to browse</p>
-        <p style="color: #ffffff; opacity: 0.5; font-size: 0.9rem;">Supported formats: JPG, JPEG, PNG</p>
+        <div style="text-align: center; margin: 1rem 0 2rem 0;">
+            <p style="color: #ffffff; opacity: 0.7;">Drag and drop your chart image here, or click to browse</p>
+            <p style="color: #ffffff; opacity: 0.5; font-size: 0.9rem;">Supported formats: JPG, JPEG, PNG</p>
+        </div>
         """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # Process uploaded image with enhanced UI
 if uploaded_file is not None:
