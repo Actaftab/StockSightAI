@@ -333,9 +333,9 @@ if uploaded_file is not None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-        st.markdown("<button class='modern-button'>Analyze Chart</button>", unsafe_allow_html=True)
-        # Fixed: Removed label_visibility parameter from button
-        analyze_clicked = st.button("Analyze Chart", key="analyze_button", use_container_width=True)
+        # Only use the actual functional button, styled with CSS
+        analyze_clicked = st.button("Analyze Chart", key="analyze_button", use_container_width=True, 
+                                   help="Click to analyze the uploaded chart")
         st.markdown("</div>", unsafe_allow_html=True)
     
     if analyze_clicked:
