@@ -126,8 +126,16 @@ def generate_ai_suggestion(analysis_results, timeframe):
         
         return suggestion
     except Exception as e:
-        print(f"Error with OpenAI API: {e}")
-        # Fall back to rule-based suggestion if there's any error
+        error_msg = str(e)
+        print(f"Error with OpenAI API: {error_msg}")
+        
+        # Check for specific quota error
+        if "quota" in error_msg.lower() or "insufficient_quota" in error_msg:
+            print("OpenAI API quota exceeded. Falling back to rule-based analysis.")
+            # Clear the API key from environment to prevent further attempts
+            os.environ["OPENAI_API_KEY"] = ""
+        
+        # Fall back to rule-based suggestion for any error
         return generate_rule_based_suggestion(analysis_results, timeframe)
 
 def generate_rule_based_suggestion(analysis_results, timeframe):

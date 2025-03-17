@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from chart_analyzer import analyze_chart
-from ai_suggestions import get_trading_suggestion
+from ai_suggestions import get_trading_suggestion, generate_rule_based_suggestion
 import utils
 
 # Page configuration
@@ -347,8 +347,15 @@ if uploaded_file is not None:
             
             # Perform analysis
             try:
+                # Analyze the chart image
                 analysis_results = analyze_chart(np.array(image), timeframe)
+                
+                # Generate trading suggestion (will use rule-based if OpenAI fails)
                 trading_suggestion = get_trading_suggestion(analysis_results, timeframe)
+                
+                # Check if the OpenAI API key was cleared due to quota issues during the process
+                if api_key and not os.environ.get("OPENAI_API_KEY"):
+                    st.warning("⚠️ OpenAI API quota exceeded. Switched to rule-based analysis. Please check your OpenAI API plan and billing details.")
                 
                 # Store results in session state
                 st.session_state.analysis_results = {
@@ -359,7 +366,26 @@ if uploaded_file is not None:
                 st.session_state.analysis_complete = True
                 st.rerun()
             except Exception as e:
-                st.error(f"Error analyzing chart: {str(e)}")
+                error_msg = str(e)
+                if "OpenAI" in error_msg or "API" in error_msg:
+                    st.warning(f"⚠️ OpenAI API issue: {error_msg}. Using rule-based analysis instead.")
+                    try:
+                        # Try again with rule-based analysis only
+                        analysis_results = analyze_chart(np.array(image), timeframe)
+                        trading_suggestion = generate_rule_based_suggestion(analysis_results, timeframe)
+                        
+                        # Store results in session state
+                        st.session_state.analysis_results = {
+                            "patterns": analysis_results["patterns"],
+                            "indicators": analysis_results["indicators"],
+                            "trading_suggestion": trading_suggestion
+                        }
+                        st.session_state.analysis_complete = True
+                        st.rerun()
+                    except Exception as inner_e:
+                        st.error(f"Error in rule-based analysis: {str(inner_e)}")
+                else:
+                    st.error(f"Error analyzing chart: {error_msg}")
 
 # Display results if analysis is complete with enhanced styling
 if st.session_state.analysis_complete and st.session_state.analysis_results is not None:
