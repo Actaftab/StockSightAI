@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from chart_analyzer import analyze_chart
 from ai_suggestions import get_trading_suggestion, generate_rule_based_suggestion
 import utils
+from auth import init_auth, require_auth
 
 # Page configuration
 st.set_page_config(
@@ -305,11 +306,40 @@ if 'analysis_complete' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 
+# Initialize the authentication system
+init_auth()
+
+# Add logout button to sidebar if user is authenticated
+if st.session_state.authenticated:
+    with st.sidebar:
+        st.markdown("<hr style='margin: 1.5rem 0; border-color: #2d3747;'>", unsafe_allow_html=True)
+        if st.button("Logout"):
+            from auth import logout
+            logout()
+            st.rerun()
+
 # Main container for centered content
 with st.container():
     # Main header
     st.markdown("<h1 class='main-header'>Crypto Sant AI</h1>", unsafe_allow_html=True)
     st.markdown("<p class='sub-header'>Stock Chart Analyzer</p>", unsafe_allow_html=True)
+    
+    # Check if user is authenticated, if not show login page
+    if not require_auth():
+        # This will redirect to login/signup page
+        st.stop()
+    
+    # User is authenticated, display welcome message and continue with app
+    st.markdown(f"""
+    <div style="background-color: rgba(3, 218, 198, 0.1); padding: 0.8rem 1.2rem; border-radius: 10px; 
+     margin-bottom: 1.5rem; display: flex; align-items: center; border: 1px solid rgba(3, 218, 198, 0.3);">
+        <div style="font-size: 1.8rem; margin-right: 1rem;">👋</div>
+        <div>
+            <p style="margin: 0; font-weight: 600; color: #03DAC6;">Welcome, {st.session_state.username}!</p>
+            <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Ready to analyze some charts?</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # File uploader - simple version without the extra custom container
     uploaded_file = st.file_uploader("Upload Chart Image", type=["jpg", "jpeg", "png"])
